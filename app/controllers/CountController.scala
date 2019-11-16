@@ -24,9 +24,9 @@ class CountController @Inject() (cc: ControllerComponents,
   def count = Action {
     val c = configuration
 
-    val map = configuration.underlying.getAnyRef("aliyunos")
+//    val map = configuration.underlying.getAnyRef("aliyunos")
 
-    println(s"map is $map")
+//    println(s"map is $map")
     Ok(counter.nextCount().toString)
   }
 
