@@ -41,31 +41,32 @@ class RestfulImageController @Inject()(actorSystem: ActorSystem, cc: ControllerC
   def process(urls: Array[String]): String = {
     //    val jobId = counter.nextCount()
     val jobId = UUID.randomUUID().toString
+    val urls_dis = urls.distinct
+    val maps = urls_dis.map(url => {
+      val uuid = UUID.randomUUID().toString
+      val suffix = url.substring(url.lastIndexOf(".") + 1);
+      val filename = uuid + "-img." + suffix
+      val f = s"$prefix$filename"
+      (url -> f)
+    }).toMap
+//    job2urls(jobId) = Job(jobId, urls_dis, maps, urls_dis.map(Future)
 
-    actorSystem.scheduler.scheduleOnce(1.micros) {
-      val urls_dis = urls.distinct
-      val maps = urls_dis.map(url => {
-        val uuid = UUID.randomUUID().toString
-        val suffix = url.substring(url.lastIndexOf(".") + 1);
-        val filename = uuid + "-img." + suffix
-        val f = s"$prefix$filename"
-        (url -> f)
-      }).toMap
 
-
-      job2urls(jobId) = Job(jobId, urls_dis, maps, urls_dis.map(url => Future {
-        val r = Http(url).asString
-        val filename = maps(url)
-//        Thread.sleep(5000);
+    job2urls(jobId) = Job(jobId, urls_dis, maps, urls_dis.map(url => Future {
+      val r = Http(url).asString
+      val filename = maps(url)
+      actorSystem.scheduler.scheduleOnce(Duration.Zero) {
+//        Thread.sleep(10000);
+//        println("ok")
         // 创建OSSClient实例。
         val ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret)
         ossClient.putObject(bucketName, s"$prefix$filename", new ByteArrayInputStream(r.body.getBytes))
         // 关闭OSSClient。
         ossClient.shutdown();
-        filename
-      }))
-      jobId
-    }(actorSystem.dispatcher) // run scheduled tasks using the actor system's dispatcher
+
+      }(actorSystem.dispatcher) // run scheduled tasks using the actor system's dispatcher
+      filename
+    })) // 使用actorsystem的异步上下文
 
     jobId
   }
@@ -116,6 +117,9 @@ class RestfulImageController @Inject()(actorSystem: ActorSystem, cc: ControllerC
       }
       case _ =>
         BadRequest("当前没有该作业")
+//        val r = Json.arr(Array[Map[String, String]]())
+//        Ok(r)
+
     }
   }
 
